@@ -13,5 +13,59 @@ library(lubridate)    # To handle dates and times
 ## Import the downloaded csv ##################################################
 
 wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
-
+#setting remove = FALSE preserves the original (E/N) column:
 wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, remove = FALSE)
+
+#TASK 1- getting an overview-------
+#new column "timelag" using lead
+wildschwein_BE <- mutate(wildschwein_BE,timelag = as.numeric(difftime(lead(DatetimeUTC),
+                                                                      DatetimeUTC,
+                                                                      units = "secs")))
+summary(wildschwein_BE$timelag)
+
+# timelag should just be calculated between subsequent rows of the same individual
+#therefore we have to makes group of the animals by using TierID
+
+wildschwein_BE <- group_by(wildschwein_BE,TierID)
+wildschwein_BE <- mutate(wildschwein_BE,timelag = as.numeric(difftime(lead(DatetimeUTC),
+                                                                      DatetimeUTC,
+                                                                    units = "secs")))
+summary(wildschwein_BE$timelag)
+
+#Q1: How many individuals were tracked?
+#calculate mean of each (TierID) group
+h <-summarise(wildschwein_BE, mean = mean(timelag, na.rm = T))
+#with piping and removing of the last column gemetry:
+wildschwein_BE %>%                     
+  st_set_geometry(NULL) %>%            
+  group_by(TierID) %>%                 
+  summarise(mean_timelag = mean(timelag,na.rm = T))
+
+
+#plot a histogramm
+ggplot(wildschwein_BE, mapping = aes(x=timelag))+
+  geom_histogram(binwidth = 15)+
+  coord_cartesian(xlim = c(0, 15000))+
+  scale_y_log10()
+
+#Q2: For how long were the individual tracked? Are there gaps?
+ggplot(wildschwein_BE, aes(x=TierID, na.rm = TRUE)) + 
+  geom_linerange(aes(ymin=DatetimeUTC, ymax=DatetimeUTC + timelag), size=1)+
+  coord_flip()+
+  ylab("DatetimeUTC")
+
+#Q3: Were all individuals tracked concurrently or sequentially?
+monate2 <-month(wildschwein_BE$DatetimeUTC, label = TRUE)
+monate3 <-months(wildschwein_BE$DatetimeUTC) 
+monate <- ceiling_date(wildschwein_BE$DatetimeUTC, "month")
+monate <-update(wildschwein_BE$DatetimeUTC, month="3 months")
+
+#hier noch die monate festlegen, start  sep, ende Jan
+fmonate <- round_date(wildschwein_BE$DatetimeUTC, "5 month")
+
+ggplot(wildschwein_BE, aes(x=monate3, y=timelag, color=TierID, na.re=TRUE)) + 
+  geom_point()+
+  geom_line()
+
+
+
