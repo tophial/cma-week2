@@ -55,15 +55,18 @@ ggplot(wildschwein_BE, aes(x=TierID, na.rm = TRUE)) +
   ylab("DatetimeUTC")
 
 #Q3: Were all individuals tracked concurrently or sequentially?
-monate2 <-month(wildschwein_BE$DatetimeUTC, label = TRUE)
-monate3 <-months(wildschwein_BE$DatetimeUTC) 
+#extract the months (sep-jan) out of DateitmeUTC first:
+monate1 <-month(wildschwein_BE$DatetimeUTC, label = TRUE)
+monate4<- strftime(monate2)
+
+monate3 <-months(wildschwein_BE$DatetimeUTC, abbreviate = TRUE, 5) 
 monate <- ceiling_date(wildschwein_BE$DatetimeUTC, "month")
-monate <-update(wildschwein_BE$DatetimeUTC, month="3 months")
+monate2 <-update(wildschwein_BE$DatetimeUTC, month="5 months")
 
-#hier noch die monate festlegen, start  sep, ende Jan
-fmonate <- round_date(wildschwein_BE$DatetimeUTC, "5 month")
+# die monate festlegen, start  sep, ende Jan
+fmonate <- round_date(wildschwein_BE$DatetimeUTC, "months")
 
-ggplot(wildschwein_BE, aes(x=monate3, y=timelag, color=TierID, na.re=TRUE)) + 
+ggplot(wildschwein_BE, aes(x=monate2, y=timelag, color=TierID, na.re=TRUE)) + 
   geom_point()+
   geom_line()
 
