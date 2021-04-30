@@ -44,7 +44,7 @@ wildschwein_BE %>%
 
 #plot a histogramm
 ggplot(wildschwein_BE, mapping = aes(x=timelag))+
-  geom_histogram(binwidth = 15)+
+  geom_histogram(binwidth = 10)+
   coord_cartesian(xlim = c(0, 15000))+
   scale_y_log10()
 
@@ -56,19 +56,15 @@ ggplot(wildschwein_BE, aes(x=TierID, na.rm = TRUE)) +
 
 #Q3: Were all individuals tracked concurrently or sequentially?
 #extract the months (sep-jan) out of DateitmeUTC first:
-monate1 <-month(wildschwein_BE$DatetimeUTC, label = TRUE)
-monate4<- strftime(monate2)
 
-monate3 <-months(wildschwein_BE$DatetimeUTC, abbreviate = TRUE, 5) 
-monate <- ceiling_date(wildschwein_BE$DatetimeUTC, "month")
-monate2 <-update(wildschwein_BE$DatetimeUTC, month="5 months")
+wildschwein_BE_14 <-wildschwein_BE %>%
+  filter(year(DatetimeUTC)  == 2014)  
 
-# die monate festlegen, start  sep, ende Jan
-fmonate <- round_date(wildschwein_BE$DatetimeUTC, "months")
-
-ggplot(wildschwein_BE, aes(x=monate2, y=timelag, color=TierID, na.re=TRUE)) + 
+ggplot(wildschwein_BE_14, aes(x=DatetimeUTC, y=timelag, color=TierID, na.re=TRUE)) + 
   geom_point()+
   geom_line()
+#What is the temporal sampling interval between the locations?
 
+#task 2 - Deriving movement parameters I: Speed
 
 
