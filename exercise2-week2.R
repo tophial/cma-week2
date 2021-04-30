@@ -116,7 +116,117 @@ caro60_9<-slice(caro60, seq(1,200,9))
 nrow(caro60_9)
 ## [1] 23
 
+
+###calculate timelag for each subset--------
+
 caro60 <- group_by(caro60,TierID)
 caro60 <- mutate(caro60,timelag = as.numeric(difftime(lead(DatetimeUTC),
                                                       DatetimeUTC,
                                                       units = "sec")))
+caro60_3 <- group_by(caro60_3,TierID)
+caro60_3 <- mutate(caro60_3,timelag = as.numeric(difftime(lead(DatetimeUTC),
+                                                          DatetimeUTC,
+                                                          units = "sec")))
+caro60_6 <- group_by(caro60_6,TierID)
+caro60_6 <- mutate(caro60_6,timelag = as.numeric(difftime(lead(DatetimeUTC),
+                                                          DatetimeUTC,
+                                                          units = "sec")))
+caro60_9 <- group_by(caro60_9,TierID)
+caro60_9 <- mutate(caro60_9,timelag = as.numeric(difftime(lead(DatetimeUTC),
+                                                          DatetimeUTC,
+                                                          units = "sec")))
+###calculate steplength for each subset-----------------
+
+# Store coordinates in a new variable
+coordinates <- st_coordinates(caro60)
+coordinates_3 <- st_coordinates(caro60_3)
+coordinates_6 <- st_coordinates(caro60_6)
+coordinates_9 <- st_coordinates(caro60_9)
+
+head(coordinates)
+#rename the columns 
+colnames(coordinates) <- c("E","N")
+colnames(coordinates_3) <- c("E","N")
+colnames(coordinates_6) <- c("E","N")
+colnames(coordinates_9) <- c("E","N")
+#use cbind() to “glue” the columns to our original sf-object.
+caro60 <- cbind(caro60,coordinates)
+caro60_3 <- cbind(caro60_3,coordinates_3)
+caro60_6 <- cbind(caro60_6,coordinates_6)
+caro60_9 <- cbind(caro60_9,coordinates_9)
+head(caro60)
+
+#make extra column trajectory
+caro60 <- mutate(caro60,trajectory = "1min")
+caro60_3 <-mutate(caro60_3,trajectory = "3min")
+caro60_6 <-mutate(caro60_6,trajectory = "6min")
+caro60_9 <-mutate(caro60_9,trajectory = "9min")
+
+#bind data together 
+#1min and 3min 
+caro_1_3 <-rbind(caro60,caro60_3)
+#1min and 6min 
+caro_1_6 <-rbind(caro60,caro60_6)
+#1min and 9min 
+caro_1_9 <-rbind(caro60,caro60_9)
+
+#compare 1min, 3min in a plot
+ggplot(caro_1_3)+
+  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
+  geom_point(mapping= aes(x=N, y=E, color=trajectory))
+#compare 1min, 6min in a plot
+ggplot(caro_1_6)+
+  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
+  geom_point(mapping= aes(x=N, y=E, color=trajectory))
+#compare 1min, 9min in a plot
+ggplot(caro_1_9)+
+  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
+  geom_point(mapping= aes(x=N, y=E, color=trajectory))
+
+
+###calculate speed---------------
+
+
+#steplength calculation for 1min
+E1 <- c(caro60$E)
+E2 <-lead(caro60$E,1)
+N1 <- c(caro60$N)
+N2 <-lead(caro60$N,1)
+
+caro60 <- mutate(caro60,steplength = sqrt((E1-E2)^2+(N1-N2)^2))
+caro60 <- mutate(caro60,speed = (steplength/timelag))
+
+#steplength calculation for 3min
+E1_3 <- c(caro60_3$E)
+E2_3 <-lead(caro60_3$E,1)
+N1_3 <- c(caro60_3$N)
+N2_3 <-lead(caro60_3$N,1)
+
+caro60_3 <- mutate(caro60_3,steplength = sqrt((E1_3-E2_3)^2+(N1_3-N2_3)^2))
+caro60_3 <- mutate(caro60_3,speed = (steplength/timelag))
+
+#steplength calculation for 6min
+E1_6 <- c(caro60_6$E)
+E2_6 <-lead(caro60_6$E,1)
+N1_6 <- c(caro60_6$N)
+N2_6 <-lead(caro60_6$N,1)
+
+caro60_6 <- mutate(caro60_6,steplength = sqrt((E1_6-E2_6)^2+(N1_6-N2_6)^2))
+caro60_6 <- mutate(caro60_6,speed = (steplength/timelag))
+
+#steplength calculation for 9min
+E1_9 <- c(caro60_9$E)
+E2_9 <-lead(caro60_9$E,1)
+N1_9 <- c(caro60_9$N)
+N2_9 <-lead(caro60_9$N,1)
+
+caro60_9 <- mutate(caro60_9,steplength = sqrt((E1_9-E2_9)^2+(N1_9-N2_9)^2))
+caro60_9 <- mutate(caro60_9,speed = (steplength/timelag))
+
+
+geschw <- rbind(caro60, caro60_3, caro60_6, caro60_9)
+
+#plot the speed
+ggplot(geschw)+
+  geom_line(mapping = aes(x=DatetimeUTC, y=speed, color=trajectory))
+
