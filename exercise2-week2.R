@@ -105,71 +105,49 @@ caro60 = st_as_sf(caro,
 nrow(caro)
 ## [1] 200
 
-###slice  to subset the dataset by row number---------
-caro_3<-slice(caro, seq(1,200,3))
-nrow(caro_3)
-## [1] 67
-caro_6<-slice(caro, seq(1,200,6))
-nrow(caro_6)
-## [1] 34
-caro_9<-slice(caro, seq(1,200,9))
-nrow(caro_9)
-## [1] 23
 
-#calculate timelag, steplength and speed in one for each subset
+movement_analysis_by_interval <- function(datenset, interval){
+  ###slice  to subset the dataset by row number---------
+  caro_i <- slice(datenset, seq(1,200,interval))
+  print(nrow(caro_i))
 
-caro <- caro %>%
-  group_by(TierID) %>%
-  mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
-         steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
-         speed = (steplength/timelag),
-         trajectory = "1min")
+  #calculate timelag, steplength and speed in one for each subset
+  caro_i <- caro_i %>%
+    group_by(TierID) %>%
+    mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
+           steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
+           speed = (steplength/timelag),
+           trajectory =  paste(toString(interval), "min")) 
+  
+  #calculate timelag, steplength and speed in one for reference (=whole dataset)
+  datenset <- datenset %>%
+    group_by(TierID) %>%
+    mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
+           steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
+           speed = (steplength/timelag),
+           trajectory =  paste(toString(1), "min")) 
+  
+  #bind data together 
+  #1min and 3min 
+  caro_1_i <-rbind(datenset,caro_i)
+  
+  my_plot = ggplot(caro_1_i)+
+    geom_path(mapping= aes(x=N, y=E, color=trajectory))+
+    geom_point(mapping= aes(x=N, y=E, color=trajectory))
+  
+  print(my_plot)
+  
+  return(caro_i)
+  
+}
 
-caro_3 <- caro_3 %>%
-  group_by(TierID) %>%
-  mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
-         steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
-         speed = (steplength/timelag),
-         trajectory = "3min")
-
-caro_6 <- caro_6 %>%
-  group_by(TierID) %>%
-  mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
-         steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
-         speed = (steplength/timelag),
-         trajectory = "6min")
-
-caro_9 <- caro_9 %>%
-  group_by(TierID) %>%
-  mutate(timelag = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC,units = "secs")),
-         steplength = sqrt((E-lead(E))^2+(N-lead(N))^2),
-         speed = (steplength/timelag),
-         trajectory = "9min")
-
-
-#bind data together 
-#1min and 3min 
-caro_1_3 <-rbind(caro,caro_3)
-#1min and 6min 
-caro_1_6 <-rbind(caro,caro_6)
-#1min and 9min 
-caro_1_9 <-rbind(caro,caro_9)
-
-#compare 1min, 3min in a plot
-ggplot(caro_1_3)+
-  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
-  geom_point(mapping= aes(x=N, y=E, color=trajectory))
-#compare 1min, 6min in a plot
-ggplot(caro_1_6)+
-  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
-  geom_point(mapping= aes(x=N, y=E, color=trajectory))
-#compare 1min, 9min in a plot
-ggplot(caro_1_9)+
-  geom_path(mapping= aes(x=N, y=E, color=trajectory))+
-  geom_point(mapping= aes(x=N, y=E, color=trajectory))
+caro_1 <-movement_analysis_by_interval(caro, 1)
+caro_3 <-movement_analysis_by_interval(caro, 3)
+caro_6 <-movement_analysis_by_interval(caro, 6)
+caro_9 <-movement_analysis_by_interval(caro, 9)
 
 #make one set of all data
-caro_all <- rbind(caro, caro_3, caro_6, caro_9)
+caro_all <- rbind(caro_1, caro_3, caro_6, caro_9)
 
 #comparing derived speed at different sampling intervals
 ggplot(caro_all)+
@@ -189,13 +167,21 @@ rollmean(example,k = 4,fill = NA,align = "left")
 
 #now run rollmean on the speed variable of the subset (caro_all?)
 
+rolling_window_function <- function(fenster){
+  caro_all_k <- mutate(caro_all, movingwindow = rollmean(caro_all$speed, k=fenster, fill=NA, align="left"))
+  
+  myplot <-ggplot(caro_all_k)+
+    geom_line(mapping = aes(x=DatetimeUTC, y=movingwindow, color=trajectory))
+  #print the plot
+  print(myplot)
+  
 
-#first with k = 3
-caro_all_m3 <- mutate(caro_all,movingwindow = rollmean(caro_all$speed, k=3, fill=NA, align="left"))
-ggplot(caro_all_m3)+
-  geom_line(mapping = aes(x=DatetimeUTC, y=movingwindow, color=trajectory))
+}
 
-#and with k=6
-caro_all_m6 <- mutate(caro_all,movingwindow = rollmean(caro_all$speed, k=6, fill=NA, align="left"))
-ggplot(caro_all_m6)+
-  geom_line(mapping = aes(x=DatetimeUTC, y=movingwindow, color=trajectory))         
+#try different k values (fenster)
+fenster_3 <- rolling_window_function(3) 
+fenster_5 <- rolling_window_function(5)
+fenster_8 <- rolling_window_function(8)
+
+fenster_3
+      
