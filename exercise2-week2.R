@@ -11,7 +11,6 @@ library(terra)        # To handle raster data
 library(lubridate)    # To handle dates and times
 library(tidyr)
 ## Import the downloaded csv ##################################################
-
 wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
 #setting remove = FALSE preserves the original (E/N) column:
 wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, remove = FALSE)
@@ -77,6 +76,13 @@ N2 <-lead(wildschwein_BE$N,1, na.re=TRUE)
 
 #add column steplength
 wildschwein_BE <- mutate(wildschwein_BE,steplength = sqrt((E1-E2)^2+(N1-N2)^2))
+
+wildschwein_BE <- wildschwein_BE %>%
+  group_by(TierID) %>%
+  mutate(
+    steplength = sqrt((E-lead(E))^2+(N-lead(N))^2)
+  )
+
 #calculate the speed by dividing steplenth / timelag
 wildschwein_BE <- mutate(wildschwein_BE,speed = (steplength/timelag))
 ##ERROR occurs!! im not sure why??
@@ -93,7 +99,10 @@ wildschwein_BE <- wildschwein_BE %>%
 caro = read.delim("caro60.csv",sep=",",dec=".",header=TRUE)
 #Data cleansing
 #set timezone
-class(caro60$DatetimeUTC)
+class(caro60$DatetimeUTC) # here you are referring $caro60$DatetimeUTC to a non existing dataset
+                          # you defined as caro -- caro is later assigned to
+
+# Why did you do that? That's not necessary!!
 caro$DatetimeUTC <- as.POSIXct(as.character(caro$DatetimeUTC), format = "%Y-%m-%dT%H:%M:%SZ",tz = "UTC")
 
 #transform dataframe into sf -->  N, and E are already in CH1903+ LV95 Format , therfore crs 2056
@@ -140,6 +149,9 @@ movement_analysis_by_interval <- function(datenset, interval){
   return(caro_i)
   
 }
+
+## NICE WORK WITH THE FUNCTION ## 
+## VERY EFFICIENT WAY TO GO THROUGH -- WELL DONE!!
 
 caro_1 <-movement_analysis_by_interval(caro, 1)
 caro_3 <-movement_analysis_by_interval(caro, 3)
